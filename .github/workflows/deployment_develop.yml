@@ -1,0 +1,60 @@
+name: Deploy Develop
+
+on:
+  push:
+    branches:
+      - develop
+jobs:
+  deploy_develop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: 'Login to GitHub Container Registry'
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{github.actor}}
+          password: ${{secrets.GHCR_TOKEN}}
+
+      - name: Determine the Image Tag
+        run: echo "IMAGE_TAG=$(git log -1 --format=%h)" >> $GITHUB_ENV
+
+      - name: Update Deployment YAML with New Image Tag
+        run: |
+          sed -i 's|ghcr.io/talentech-consulting/webcheque-shopify-gateway:develop.*|ghcr.io/talentech-consulting/webcheque-shopify-gateway:develop-${{ env.IMAGE_TAG }}|' .kub/develop/deployment.yml
+
+      - name: Commit and Push Updated Deployment YAML
+        run: |
+          git config --global user.name 'CI Bot'
+          git config --global user.email 'ci-bot@ventunix.com'
+          PREV_COMMIT_MSG=$(git log -1 --pretty=%B)
+          git add .kub/develop/deployment.yml
+          git commit -m "Tag: ${{ env.IMAGE_TAG }} - Commit: $PREV_COMMIT_MSG"
+          git push
+
+      - name: Build and Push Docker Image to GHCR
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ghcr.io/talentech-consulting/webcheque-shopify-gateway:develop-${{ env.IMAGE_TAG }}
+
+      - name: Sync ArgoCD Application
+        uses: omegion/argocd-actions@master
+        with:
+          address: "devops.dev.vtxcloud.net"
+          token: ${{ secrets.ARGOCD_TOKEN }}
+          action: sync
+          appName: "webcheque-shopify-gateway-develop"
+
+      - name: Purge cache
+        uses: jakejarvis/cloudflare-purge-action@master
+        env:
+          CLOUDFLARE_ZONE: 332786106c089e8aae53ee3c6ad51b06
+          CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_TOKEN }}

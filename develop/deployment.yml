@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webcheque-shoppify-gateway
+  namespace: webcheque
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 25%
+  selector:
+    matchLabels:
+      app: webcheque-shopify-gateway-develop
+  template:
+    metadata:
+      labels:
+        app: webcheque-shopify-gateway-develop
+    spec:
+      containers:
+        - name: webcheque-shopify-gateway-develop
+          image: ghcr.io/talentech-consulting/webcheque-shopify-gateway:develop-6e4a1d1
+          env:
+            - name: ENVIRONMENT
+              value: "production"
+            - name: DATABASE_URL
+              value: "mysql://wce_shpfy_dev:fRc2PkX$z9DgJ@tnt-mysql-develop.coconq07b9p3.eu-west-1.rds.amazonaws.com:3306/webcheque_shopify_develop"
+            - name: NODE_ENV
+              value: "develop"
+            - name: SHOPIFY_API_KEY
+              value: "35d76dcad2f7b221516c15d970a8b129"
+            - name: SHOPIFY_API_SECRET
+              value: "42d68554f691acb5c1acefb1928981ca"
+            - name: SCOPES
+              value: "write_payment_gateways,write_payment_sessions,read_customers,write_customers,read_orders,write_orders"
+          ports:
+            - containerPort: 3000
+          startupProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: "25m"
+              memory: "250Mi"
+            limits:
+              memory: "300Mi"
+      imagePullSecrets:
+        - name: ghcr-login-secret

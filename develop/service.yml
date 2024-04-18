@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: webcheque-shopify-gateway-develop-service
+  namespace: webcheque
+  labels:
+    name: webcheque-shopify-gateway-develop
+spec:
+  selector:
+    app: webcheque-shopify-gateway-develop
+  ports:
+    - name: app
+      protocol: TCP
+      port: 3000
+      targetPort: 3000

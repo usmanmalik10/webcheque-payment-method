@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: webcheque-shopify-gateway-develop-ingress
+  namespace: webcheque
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: lets-encrypt-cf
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: sgw-develop.webcheque.com.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: webcheque-shopify-gateway-develop-service
+                port:
+                  number: 3000
+  tls:
+    - hosts:
+        - sgw-develop.webcheque.com.br
+      secretName: webcheque-shopify-gateway-develop-ssl-secret
